@@ -2,13 +2,13 @@ package de.leuphana.ardrone.dronesystem.domain.util;
 
 
 /**
- * represents an auto incrementing counter
+ * Thread-safe auto-incremental counter.
+ * 
  * @author Florian Quadt
- *
  */
 public final class Counter {
 	private static long counter = 1;
-
+	
 	public synchronized static long get() {
 		return counter++;
 	}
