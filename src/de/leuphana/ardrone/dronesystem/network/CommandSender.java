@@ -25,8 +25,6 @@ public enum CommandSender {
 	// private SenderThread sender;
 
 	private CommandSender() {
-		// initialisiert eine Verbindung
-
 	}
 
 	public void open() {
@@ -54,11 +52,11 @@ public enum CommandSender {
 	}
 
 	/**
-	 * sendet den übergebenen String an die Drohne und fügt einen CarriageReturn
+	 * sendet den Ÿbergebenen String an die Drohne und fŸgt einen CarriageReturn
 	 * linefeed hinzu
 	 * 
 	 * @param command
-	 * @return
+	 * @return whether sending the command succeeded
 	 */
 	public boolean sendCommand(String command) {
 		return send(command + "\r");
@@ -69,14 +67,14 @@ public enum CommandSender {
 	 * Initialisierung angegebene IP-Adresse auf Port 5556.
 	 * 
 	 * @param command
-	 * @return
+	 * @return whether sending the command succeeded
 	 */
 	private synchronized boolean send(String command) {
 		if (inetAddress == null || commandSocket == null)
 			open();
 		byte[] bytes = command.getBytes();
 		DatagramPacket packet = new DatagramPacket(bytes, bytes.length,
-				inetAddress, 5556);
+				inetAddress, Config.getCmdPort());
 		try {
 			commandSocket.send(packet);
 			System.out.println("NET: " + command);

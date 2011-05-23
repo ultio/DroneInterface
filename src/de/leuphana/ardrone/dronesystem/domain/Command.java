@@ -28,7 +28,6 @@ public class Command {
 		for (int i = 0; i < placeholder.length; i++) {
 			strings[i] = placeholder[i].toString();
 		}
-		// System.out.println("anzahl placeholder " + placeholder.length);
 		commandMessage = MessageFormat.format(commandMessage, strings);
 		return commandMessage;
 	}

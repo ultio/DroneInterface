@@ -9,6 +9,16 @@ import de.leuphana.ardrone.dronesystem.domain.util.Counter;
 import de.leuphana.ardrone.dronesystem.network.CommandSender;
 import de.leuphana.ardrone.dronesystem.old.Util;
 
+/**
+ * Given a list of initialization commands, sends all commands to the drone and
+ * then initializes the Keep-Alive and Commander routines. TODO: current
+ * implementation does not check whether the commands are received/accepted.
+ * Implement a check whether navdata received reflects init commands sent.
+ * 
+ * @see {@link KeepAlive}, {@link Commander}
+ * @author Florian, Moritz
+ * 
+ */
 public class Init {
 
 	private Init() {

@@ -7,12 +7,22 @@ import java.util.TimerTask;
 
 import de.leuphana.ardrone.dronesystem.network.CommandSender;
 
+/**
+ * Sends the resetwatchdog command every 30ms to ensure that the drone never
+ * goes into lock-down.
+ * 
+ * @author Florian, Moritz
+ * 
+ */
 public class KeepAlive {
 	private static Timer t;
 
 	private KeepAlive() {
 	}
 
+	/**
+	 * Starts the Timer controlling the keep-alive signal.
+	 */
 	public static void start() {
 		t = new Timer();
 		t.scheduleAtFixedRate(new TimerTask() {
@@ -26,6 +36,9 @@ public class KeepAlive {
 		}, 0 /* initial delay */, 30 /* period */);
 	}
 
+	/**
+	 * Stops the timer.
+	 */
 	public static void stop() {
 		t.cancel();
 	}

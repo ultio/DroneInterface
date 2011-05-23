@@ -5,17 +5,29 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 
+import de.leuphana.ardrone.dronesystem.domain.util.Config;
+
+/**
+ * Socket that receives all navData.
+ * 
+ * @author Florian
+ *
+ */
 public class NavDataReceiver {
 	private DatagramSocket navDataSocket;
 	private InetAddress address;
 
-	public NavDataReceiver(InetAddress inetAddress) {
+	public NavDataReceiver() {
 		try {
-			this.address = inetAddress;
-			navDataSocket = new DatagramSocket();
+			this.address = InetAddress.getByName(Config.getIp());
+			navDataSocket = new DatagramSocket(Config.getNavDataPort());
 			navDataSocket.setSoTimeout(3000);
 		} catch (SocketException e) {
+			e.printStackTrace();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
