@@ -13,23 +13,23 @@ public class NavDataReceiver {
 	public NavDataReceiver(InetAddress inetAddress) {
 		try {
 			this.address = inetAddress;
-			navDataSocket = new DatagramSocket(5554);
+			navDataSocket = new DatagramSocket();
 			navDataSocket.setSoTimeout(3000);
 		} catch (SocketException e) {
 			e.printStackTrace();
 		}
 	}
-	
-	public byte[] receive()
-	{
+
+	public byte[] receive() {
 		byte[] buffer = new byte[1024];
-		DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+		DatagramPacket packet = new DatagramPacket(buffer, buffer.length,
+				address, 5554);
 		try {
 			navDataSocket.receive(packet);
 			return packet.getData();
 		} catch (IOException e) {
 			e.printStackTrace();
-			return new byte[]{0};
+			return new byte[] { 0 };
 		}
 	}
 }
