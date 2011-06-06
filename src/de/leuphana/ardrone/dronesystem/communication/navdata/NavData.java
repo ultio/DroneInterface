@@ -9,39 +9,114 @@ package de.leuphana.ardrone.dronesystem.communication.navdata;
 
  */
 
-import java.net.InetAddress;
+import java.io.IOException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import de.leuphana.ardrone.dronesystem.domain.ArDroneState;
+import de.leuphana.ardrone.dronesystem.domain.ArDroneState.Mask;
 import de.leuphana.ardrone.dronesystem.domain.util.Util;
-import de.leuphana.ardrone.dronesystem.old.network.DataReceiver;
+import de.leuphana.ardrone.dronesystem.network.CommandSender;
+import de.leuphana.ardrone.dronesystem.network.NavDataReceiver;
+import de.leuphana.ardrone.dronesystem.old.CommandCounter;
+import de.leuphana.ardrone.dronesystem.old.domain.Commands;
 
 public class NavData extends Thread {
 
-	private final InetAddress inetAddress;
-	DataReceiver receiver;
+	// private final InetAddress inetAddress;
+	NavDataReceiver receiver;
 	// ArDroneState state;
 	int oldSeqNumber;
 	int seqNumber;
-	NavDataParser parser;
-	DemoNavData demoNavData;
+	private int stateValues;
 
-	public NavData(InetAddress inetAddress) {
-		this.inetAddress = inetAddress;
+	public int getStateValues() {
+		return stateValues;
+	}
+
+	public void setStateValues(int stateValues) {
+		this.stateValues = stateValues;
+	}
+
+	NavDataParser parser;
+	private DemoNavData demoNavData;
+
+	public NavData() {
+
+		// this.inetAddress = inetAddress;
 		// TODO Auto-generated constructor stub
-		receiver = new DataReceiver(inetAddress);
+		receiver = new NavDataReceiver();
 		// state = new ArDroneState();
 		parser = new NavDataParser();
 		demoNavData = new DemoNavData();
+		// init();
+	}
+
+	private void init() {
+		System.out.println("init started");
+		try {
+			receiver.sendTrash();
+			byte[] data = receiver.receive();
+			parser.parse(data);
+			// DroneConnect.instance
+			// .sendCommand(String.format(Commands.CONF_NAVDATA_TRUE.getCommandString(),
+			// CommandCounter.getCounter()));
+			if (ArDroneState.isOne(Mask.NAVDATA_BOOTSTRAP, stateValues)) {
+				System.out.println("Bootstrap active.");
+				System.out.println("Changing to demo...");
+				// sende was anderes
+				CommandSender.INSTANCE
+						.sendCommand("AT*CONFIG=\"general:navdata_demo\",\"TRUE\"");
+				CommandSender.INSTANCE.sendCommand(String.format(
+						Commands.CONF_NAVDATA_TRUE.getCommandString(),
+						CommandCounter.getCounter()));
+				data = receiver.receive();
+				parser.parse(data);
+				// DroneConnect.instance.sendCommand("AT*CTRL=0");
+				// DroneConnect.instance.sendCommand(String.format(Commands.CTRL.getCommandString(),CommandCounter.getCounter()));
+				// DroneConnect.instance.sendCommand(String.format(Commands.COMMAND_ACK.getCommandString(),CommandCounter.getCounter()));
+				if (ArDroneState.isZero(Mask.COMMAND_MASK, stateValues)) {
+					System.out.println("Command activated");
+					System.out.println("Running in demo mode");
+					CommandSender.INSTANCE.sendCommand("AT*CTRL=0");
+					// DroneConnect.instance.sendCommand(String.format(Commands.CTRL.getCommandString(),CommandCounter.getCounter()));
+					// DroneConnect.instance.sendCommand(String.format(Commands.COMMAND_ACK.getCommandString(),CommandCounter.getCounter()));
+					// Util.sleepMillis(1)
+					// this.start();
+					return;
+				}
+				// DroneConnect.instance.sendCommand("AT*CTRL=0");
+				// DroneConnect.instance.sendCommand(String.format(Commands.CTRL.getCommandString(),CommandCounter.getCounter()));
+
+			}
+			System.err.println("Unable to init NAVDATA");
+			// demoNavData.
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		// TODO Auto-generated method stub
+
 	}
 
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
+		init();
+		Util.sleepMillis(2090);
 		while (true) {
-			byte[] bytes = receiver.receive();
-			parser.parse(bytes);
-			Util.sleepMillis(300);
+			byte[] bytes;
+			try {
+				bytes = receiver.receive();
+				parser.parse(bytes);
+				System.out.println(demoNavData);
+				Util.sleepMillis(50);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				System.out.println("timeOut");
+				// e.printStackTrace();
+			}
 		}
 		// super.run();
 	}
@@ -68,9 +143,12 @@ public class NavData extends Thread {
 				return;
 			}
 			// 4-7
-			int stateValues = buffer.getInt();
+			stateValues = buffer.getInt();
+			System.out.println("STATE:" + stateValues);
+
 			// 8-11
 			seqNumber = buffer.getInt();
+			System.out.println("seqNumber:" + seqNumber);
 			// 12-15
 			int visionFlag = buffer.getInt();
 			while (buffer.position() < buffer.limit() - 64) {
@@ -81,48 +159,74 @@ public class NavData extends Thread {
 				// length: 16 bit)
 				// size is number of bytes. optionSize is therefore 4 bytes
 				// smaller
-				int optionsSize = (buffer.getShort() & 0xFFFF) - 4;
-				byte[] dst = new byte[optionsSize];
-				buffer.get(dst, 0, optionsSize);
-				ByteBuffer option = ByteBuffer.wrap(dst);
-				option.order(ByteOrder.LITTLE_ENDIAN);
-				buffer.position(buffer.position() + optionsSize);
-				handleOption(tag, option);
+				int gesamt = (buffer.getShort() & 0xFFFF);
+				int optionsSize = gesamt - 4;
+				// Stefan hat gemeckert deshalb >0
+				if (optionsSize > 0) {
+					byte[] dst = new byte[optionsSize];
+					buffer.get(dst, 0, optionsSize);
+					ByteBuffer option = ByteBuffer.wrap(dst);
+					option.order(ByteOrder.LITTLE_ENDIAN);
+					buffer.position(buffer.position() + optionsSize);
+					handleOption(tag, option);
+				}
 			}
 			// int checksum last 64 bit
 
-			// int battery = buffer.getInt(NAV_BATTERY_OFFSET);
-			// int pitchOffset = buffer.getInt(NAV_PITCH_OFFSET);
-			// int rollOffset = buffer.getInt(NAV_ROLL_OFFSET);
-			// int yawOffset = buffer.getInt(NAV_YAW_OFFSET);
-			// int altitude = buffer.getInt(NAV_ALTITUDE_OFFSET);
-			// // getOptions
 			// state.update(stateValues);
 
 		}
 
 		private void handleOption(int tag, ByteBuffer option) {
-			switch (tag) {
-			case 0: // demo_nav_data
+			try {
 				demoNavData.ctrlState = option.getInt();
-				demoNavData.batteryLevel = option.getInt();
+				System.out.println(stateValues);
+				System.out.println(demoNavData.ctrlState);
+				demoNavData.setBatteryLevel(option.getInt());
 				demoNavData.pitch = option.getFloat();
-				demoNavData.rotate = option.getFloat();
+				// demoNavData.rotate = option.getFloat();
+				// demoNavData.yaw = option.getFloat() ;
 				demoNavData.yaw = option.getFloat();
+				demoNavData.rotate = option.getFloat();
 				demoNavData.altitude = option.getInt();
 				demoNavData.vx = option.getFloat();
 				demoNavData.vy = option.getFloat();
 				demoNavData.vz = option.getFloat();
 				demoNavData.frameIndex = option.getInt();
-				System.out.println(demoNavData);
-				break;
-
-			default:
-				throw new IllegalArgumentException();
+			} catch (BufferUnderflowException e) {
+				// TODO Auto-generated catch block
+				// e.printStackTrace();
+				System.out.println("Buffer underflow");
 			}
+			// switch (tag) {
+			// case 0: // demo_nav_data
+			// demoNavData.ctrlState = option.getInt();
+			// demoNavData.batteryLevel = option.getInt();
+			// demoNavData.pitch = option.getFloat();
+			// demoNavData.rotate = option.getFloat();
+			// demoNavData.yaw = option.getFloat();
+			// demoNavData.altitude = option.getInt();
+			// demoNavData.vx = option.getFloat();
+			// demoNavData.vy = option.getFloat();
+			// demoNavData.vz = option.getFloat();
+			// demoNavData.frameIndex = option.getInt();
+			// System.out.println(demoNavData);
+			// break;
+			//
+			// default:
+			// throw new IllegalArgumentException();
+			// }
 
 		}
 
+	}
+
+	public DemoNavData getDemoNavData() {
+		return demoNavData;
+	}
+
+	public void setDemoNavData(DemoNavData demoNavData) {
+		this.demoNavData = demoNavData;
 	}
 
 	static final int MYKONOS_TRIM_COMMAND_MASK = 1 << 7; /*

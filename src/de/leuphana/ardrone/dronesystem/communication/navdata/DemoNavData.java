@@ -1,16 +1,51 @@
 package de.leuphana.ardrone.dronesystem.communication.navdata;
 
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+
 public class DemoNavData {
-	public int ctrlState;
+	public final static String PROPERTY_BATTERYLEVEL = "batteryLevel";
+
+	private final PropertyChangeSupport pcs;
+	public int ctrlState = 0;
+
+	public DemoNavData() {
+		pcs = new PropertyChangeSupport(this);
+	}
+
+	public void addPropertyChangeListener(PropertyChangeListener listener) {
+		pcs.addPropertyChangeListener(listener);
+	}
+
+	public void removePropertyChangeListener(PropertyChangeListener listener) {
+		pcs.removePropertyChangeListener(listener);
+	}
+
+	public void addPropertyChangeListener(String propertyName,
+			PropertyChangeListener listener) {
+		pcs.addPropertyChangeListener(propertyName, listener);
+	}
+
+	public void removePropertyChangeListener(String propertyName,
+			PropertyChangeListener listener) {
+		pcs.removePropertyChangeListener(propertyName, listener);
+	}
+
 	/**
 	 * vbat_flying_percentage
 	 */
-	public int batteryLevel;
+	private int batteryLevel;
 	/**
-	 * theta; forward-backward in milli degrees
+	 * theta forward-backward in milli degrees
 	 */
-	public float pitch;
+	public float pitch; // forward backward
+	/**
+	 * phi //(roll) in milli degrees
+	 */
 	public float rotate;// phi; //(roll) in milli degrees
+	/**
+	 * psi; //tilt Left Right in milli degrees
+	 */
 	public float yaw;// psi; //tilt Left Right in milli degrees
 	/**
 	 * altitude in centimeters
@@ -36,10 +71,21 @@ public class DemoNavData {
 	@Override
 	public String toString() {
 		return "DemoNavData [ctrlState=" + ctrlState + ", batteryLevel="
-				+ batteryLevel + ", pitch=" + pitch + ", rotate=" + rotate
-				+ ", yaw=" + yaw + ", altitude=" + altitude + ", vx=" + vx
-				+ ", vy=" + vy + ", vz=" + vz + ", frameIndex=" + frameIndex
-				+ "]";
+				+ getBatteryLevel() + ", pitch=" + (pitch / 1000) + ", rotate="
+				+ (rotate / 1000) + ", yaw=" + (yaw / 1000) + ", altitude="
+				+ altitude + ", vx=" + vx + ", vy=" + vy + ", vz=" + vz
+				+ ", frameIndex=" + frameIndex + "]";
+	}
+
+	public void setBatteryLevel(int batteryLevel) {
+		Object oldLevel = this.batteryLevel;
+		this.batteryLevel = batteryLevel;
+		pcs.firePropertyChange(PROPERTY_BATTERYLEVEL, oldLevel,
+				this.batteryLevel);
+	}
+
+	public int getBatteryLevel() {
+		return batteryLevel;
 	}
 
 	// deprecated stuff
